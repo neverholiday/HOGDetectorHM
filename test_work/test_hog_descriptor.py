@@ -7,6 +7,7 @@ from test_util import ImageTools
 # 1st we should normalize pixel or no normalize before put image to calculate in next step
 # No normalize or squre-root normalization (normalize mathod suggestion from 
 # https://gurus.pyimagesearch.com/lesson-sample-histogram-of-oriented-gradients-and-car-logo-recognition/?email=hy.nasrun@gmail.com)
+# UPDATE : skimage.feature.hog can assign parameter about Normalization 
 
 
 class testHOGDescriptor(object):
@@ -21,7 +22,7 @@ class testHOGDescriptor(object):
         return mag
 
     def extractHOG(self):
-        (H,hogImage) = feature.hog(self.img,orientations=9,pixels_per_cell=(8, 8),
+        (H,hogImage) = feature.hog(self.img,orientations=9,pixels_per_cell=(10,10),
         cells_per_block=(2, 2),transform_sqrt=True,visualise=True)
         hogImage = exposure.rescale_intensity(hogImage,out_range=(0, 255))
         hogImage = hogImage.astype("uint8")
