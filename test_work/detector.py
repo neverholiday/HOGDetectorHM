@@ -42,6 +42,7 @@ class Detector(object):
     def detectCircular(self,cnt):
         peri = cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,0.03*peri,True)
+        print(len(approx))
         if(len(approx)>=7):
             return cnt
         else:
@@ -105,6 +106,7 @@ def main():
     cv2.namedWindow("th",cv2.WINDOW_NORMAL)
     cv2.namedWindow("mask_ball",cv2.WINDOW_NORMAL)
     cv2.namedWindow("res_ball",cv2.WINDOW_NORMAL)
+    cv2.namedWindow("original",cv2.WINDOW_NORMAL)
 
     trackbar = Trackbar("mask",mode="Static")
     trackbar_ball = Trackbar("mask_ball",mode="Static")
@@ -114,6 +116,7 @@ def main():
     detect = Detector()
 
     img = cv2.imread(args["image"])
+    img_original = img.copy()
     kernel = np.ones((5,5),np.uint8)
 
     static_color_value = np.array([38,37,25,90,255,255],dtype=np.uint8) # use configobj soon 
@@ -138,15 +141,16 @@ def main():
     for c in contours:
 
         circle_contour = detect.detectCircular(c)
-
         if(len(circle_contour)>0):    
             M = cv2.moments(circle_contour)
             cX = int(M["m10"]/M["m00"])
             cY = int(M["m01"]/M["m00"])
-            cv2.drawContours(img,[circle_contour],-1,(255,0,0),2)
-            cv2.circle(img,(cX,cY),10,(255,0,255),-1)
+            # cv2.drawContours(img,[circle_contour],-1,(255,0,0),2)
+            # ROI
+            cv2.rectangle(img,(cX-100,cY-100),(cX+100,cY+100),(255,0,255),5)
+            # cv2.circle(img,(cX,cY),40,(255,0,255),5)
     
-
+    cv2.imshow("original",img_original)
     cv2.imshow("image",img)
     cv2.imshow("mask",mask_field)
     cv2.imshow("th",th2)
