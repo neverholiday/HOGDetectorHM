@@ -36,7 +36,7 @@ if(argument["mode"] == "crop_negative"):
 if(argument["mode"] == "directory_input"):
     list_dir = os.listdir(directory_image)
     number_list = len(list_dir)
-    img = cv2.imread(directory_image+list_dir[0],0)
+    img = cv2.imread(directory_image+"/"+list_dir[0],0)
     img_ = img.copy()
     img_2 =  img.copy()
 

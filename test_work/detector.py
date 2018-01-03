@@ -119,6 +119,9 @@ def main():
     img_original = img.copy()
     kernel = np.ones((5,5),np.uint8)
 
+    hc = cv2.CascadeClassifier("../test_subject/model/data_haar_121217_13.xml")
+
+
     static_color_value = np.array([38,37,25,90,255,255],dtype=np.uint8) # use configobj soon 
     lower,upper = trackbar.getvalueHSV(static_color_value)
     mask,res = detect.colorSpace(img,lower,upper)
@@ -129,6 +132,8 @@ def main():
 
     res_field = cv2.bitwise_and(img,img,mask=mask_field)
     cv2.drawContours(img,[hull],-1,(0,0,255),2)
+
+    footballs = hc.detectMultiScale(res_field,1.3,10)
 
     static_color_ball = np.array([83,0,0,179,255,255],dtype=np.uint8)
     lower_ball,upper_ball = trackbar_ball.getvalueHSV(static_color_ball)
@@ -148,7 +153,12 @@ def main():
             # cv2.drawContours(img,[circle_contour],-1,(255,0,0),2)
             # ROI
             cv2.rectangle(img,(cX-100,cY-100),(cX+100,cY+100),(255,0,255),5)
-            # cv2.circle(img,(cX,cY),40,(255,0,255),5)
+            cv2.circle(img,(cX,cY),10,(255,0,255),-1)
+    
+    for (x,y,w,h) in footballs:
+        positionX = x+w/2
+        positionY = y+h/2
+        cv2.circle(img,(positionX,positionY),w/2,(255,0,0),5)
     
     cv2.imshow("original",img_original)
     cv2.imshow("image",img)
