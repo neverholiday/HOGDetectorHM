@@ -31,7 +31,7 @@ if(args["mode"] == "video"):
     out = cv2.VideoWriter(args["name"],fourcc,20.0,(640,480))
     mode_capture = VIDEO_CAPTURE
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 while True:
     ret,img = cap.read()
