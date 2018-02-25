@@ -42,7 +42,7 @@ class Detector(object):
     def detectCircular(self,cnt):
         peri = cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,0.03*peri,True)
-        print(len(approx))
+        # print(len(approx))
         if(len(approx)>=7):
             return cnt
         else:
@@ -121,7 +121,7 @@ def main():
 
     hc = cv2.CascadeClassifier("../test_subject/model/data_haar_121217_13.xml")
 
-
+# Field Boundaries -------------------------------------------------------------------------------
     static_color_value = np.array([38,37,25,90,255,255],dtype=np.uint8) # use configobj soon 
     lower,upper = trackbar.getvalueHSV(static_color_value)
     mask,res = detect.colorSpace(img,lower,upper)
@@ -132,8 +132,8 @@ def main():
 
     res_field = cv2.bitwise_and(img,img,mask=mask_field)
     cv2.drawContours(img,[hull],-1,(0,0,255),2)
-
-    footballs = hc.detectMultiScale(res_field,1.3,10)
+# -------------------------------------------------------------------------------------------------
+    # footballs = hc.detectMultiScale(res_field,1.3,10)
 
     static_color_ball = np.array([83,0,0,179,255,255],dtype=np.uint8)
     lower_ball,upper_ball = trackbar_ball.getvalueHSV(static_color_ball)
@@ -152,13 +152,23 @@ def main():
             cY = int(M["m01"]/M["m00"])
             # cv2.drawContours(img,[circle_contour],-1,(255,0,0),2)
             # ROI
+            x_c,y_c,w_c,h_c = cv2.boundingRect(c)
+            # cv2.rectangle(img,(x_c,y_c),(x_c+w_c,y_c+h_c),(0,255,0),8)
             cv2.rectangle(img,(cX-100,cY-100),(cX+100,cY+100),(255,0,255),5)
             cv2.circle(img,(cX,cY),10,(255,0,255),-1)
     
-    for (x,y,w,h) in footballs:
+    x_start = max(x_c - 20,0) 
+    x_end = min(x_c + w_c + 20,img.shape[1])
+    y_start = max(y_c - 20,0) 
+    y_end = min(y_c + h_c+20,img.shape[0])
+
+    img_roi = img_original[x_start:x_end,y_start:y_end]
+    footballs_roi = hc.detectMultiScale(img_roi,1.3,10)
+
+    for (x,y,w,h) in footballs_roi:
         positionX = x+w/2
         positionY = y+h/2
-        cv2.circle(img,(positionX,positionY),w/2,(255,0,0),5)
+        cv2.circle(img_roi,(positionX,positionY),w/2,(255,0,0),5)
     
     cv2.imshow("original",img_original)
     cv2.imshow("image",img)
@@ -167,6 +177,7 @@ def main():
     cv2.imshow("res_field",res_field)
     cv2.imshow("mask_ball",filter_mask_ball)
     cv2.imshow("res_ball",res_ball)
+    cv2.imshow("ROI",img_roi)
     k = cv2.waitKey(0)
 
     cv2.destroyAllWindows()
