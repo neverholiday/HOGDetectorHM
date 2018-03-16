@@ -12,6 +12,8 @@ class ColorCalibrator(object):
             return 0
         elif(self.camera_device == "/dev/video1"):
             return 1
+        else:
+            return self.camera_device
 
     def colorSpace(self,image,lower_bound,upper_bound):
         image_hsv = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
@@ -55,7 +57,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--device",help = "Select camera device",required = True)
     args = vars(ap.parse_args())
-    
+
+    is_pause = 1
+
     cv2.namedWindow("img",cv2.WINDOW_NORMAL)
     trackbar = Trackbar("img")
     trackbar.createTrackbarHSV()
@@ -63,8 +67,9 @@ def main():
     color_tool = ColorCalibrator(args["device"])
     camera = color_tool.selectDevice()
     cap = cv2.VideoCapture(camera)
-    while True:    
-        ret,img = cap.read()
+    while True:   
+        if(is_pause): 
+            ret,img = cap.read()
         (lower,upper) = trackbar.getvalueHSV()
         (mask,res) = color_tool.colorSpace(img,lower,upper)    
         stack_image = np.hstack((img,res))
@@ -72,6 +77,13 @@ def main():
         k=cv2.waitKey(5)
         if(k == ord('q')):
             break
+        elif(k==ord('p')):
+            print 'pause'
+            is_pause = (is_pause + 1)%2
+        elif(k==ord('r')):
+            cap.set(cv2.CAP_PROP_POS_MSEC,0)
+
+
     cv2.destroyAllWindows
 
 

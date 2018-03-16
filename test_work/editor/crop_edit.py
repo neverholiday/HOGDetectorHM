@@ -111,6 +111,7 @@ def main():
             number_list -= 1
             print "remaining" + str(number_list)
             img = cv2.imread(directory_image+list_dir[index],0)
+            print directory_image+list_dir[index]
             img_ = img.copy()
             img_2 =  img.copy()
             

@@ -43,7 +43,7 @@ class Detector(object):
         peri = cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,0.03*peri,True)
         # print(len(approx))
-        if(len(approx)>=7):
+        if(len(approx)>=5):
             return cnt
         else:
             cnt = []

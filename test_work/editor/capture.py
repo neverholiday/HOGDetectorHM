@@ -31,7 +31,7 @@ if(args["mode"] == "video"):
     out = cv2.VideoWriter(args["name"],fourcc,20.0,(640,480))
     mode_capture = VIDEO_CAPTURE
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while True:
     ret,img = cap.read()
@@ -48,7 +48,7 @@ while True:
         
         if(mode_capture == VIDEO_CAPTURE):
             if(save_frame):
-                print "save as :" + args["name"]
+                print time.time()
                 out.write(img)
                 
         
@@ -58,8 +58,7 @@ while True:
         if k == ord('q'):
             break
         elif k == ord('s'):
-            save_frame = 1
-
-
+            save_frame = (save_frame + 1) % 2
+            print "save as :" + args["name"]
 
 cv2.destroyAllWindows()
