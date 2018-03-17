@@ -26,6 +26,12 @@ class Detector(object):
         retval,th2 = cv2.threshold(opening.copy(),127,255,cv2.THRESH_BINARY_INV)
         return th2
 
+    def fieldAfterFilter(self,img,mask,res):
+        th_field = self.lowPassFilter(mask)
+        hull,mask_after_filter = self.locateFieldBounderies(th_field)
+        res_imge = cv2.bitwise_and(img,img,mask=mask_after_filter)
+        return res_imge
+
     def lowPassfilterBall(self,mask):
         kernel = np.ones((5,5),np.uint8)
         closing = cv2.morphologyEx(mask.copy(), cv2.MORPH_CLOSE, kernel)
@@ -43,7 +49,7 @@ class Detector(object):
         peri = cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,0.03*peri,True)
         # print(len(approx))
-        if(len(approx)>=5):
+        if(len(approx)>=8):
             return cnt
         else:
             cnt = []

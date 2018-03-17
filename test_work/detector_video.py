@@ -3,105 +3,117 @@ import argparse
 import numpy as np
 from detector import Detector
 
-def crop_boundary(x,y,w,h):
-    x_start = max(x - 50,0) 
-    x_end = min(x + w + 50,img.shape[1])
-    y_start = max(y - 50,0) 
-    y_end = min(y + h + 50,img.shape[0])
+def crop_boundary(img,x,y,w,h):
+    x_start = max(x - 30,0) 
+    x_end = min(x + w + 30,img.shape[1])
+    y_start = max(y - 30,0) 
+    y_end = min(y + h + 30,img.shape[0])
     return (x_start,x_end,y_start,y_end)
 
 
-ap = argparse.ArgumentParser()
-ap.add_argument("-i","--mode",help="select mode haar only (0) or white + haar (1)",required=True)
-args = vars(ap.parse_args())
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-i","--mode",help="select mode field only (0) or ball only (1)",required=True)
+# args = vars(ap.parse_args())
 
 is_pause = 1
-use_white_select = int(args["mode"])
+# use_white_select = int(args["mode"])
 
 detector = Detector()
-lower_field = np.array([33,31,35],dtype=np.uint8)
-upper_field = np.array([52,217,227],dtype=np.uint8)
-lower_ball = np.array([0,0,221],dtype=np.uint8)
-upper_ball = np.array([179,255,255],dtype=np.uint8)
+lower_field = np.array([41,59,53],dtype=np.uint8)
+upper_field = np.array([61,242,255],dtype=np.uint8)
+lower_ball = np.array([0,0,132],dtype=np.uint8)
+upper_ball = np.array([179,42,255],dtype=np.uint8)
 
-cap = cv2.VideoCapture(1)
-# cap = cv2.VideoCapture('../test_subject/video/test_eiei.avi')
+# cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture('../test_subject/video/test_landmark2.avi')
 hc = cv2.CascadeClassifier("../test_subject/model/data_haar_2018143_13.xml")
 img_roi = np.zeros((50,50),dtype=np.uint8)
+
 while True: 
 
     # img = cv2.imread(args["image"])
     if(is_pause):
         ret,img = cap.read()
+        
+    if ret:
 
-    # Field bouderies
+        # ---------------------------  Field bouderies ------------------------
+        # if int(args["mode"]) == 0:
+        
+        mask_zeros = 255*np.ones((img.shape[0],img.shape[1]),dtype=np.uint8)
+        img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
-    mask_field,_res = detector.colorSpace(img,lower_field,upper_field)
-    th_field = detector.lowPassFilter(mask_field)
-    hull,mask_field_after_filter = detector.locateFieldBounderies(th_field)
+        mask_field,_res = detector.colorSpace(img,lower_field,upper_field)
+        blur_mask = cv2.GaussianBlur(mask_field,(5,5),0)
+        # mask_erode = cv2.erode(mask_field,np.ones((5,5),dtype=np.uint8))
+        mask_close = cv2.morphologyEx(blur_mask,cv2.MORPH_CLOSE,np.ones((10,10),np.uint8),iterations=1)
+        mask_open = cv2.morphologyEx(mask_close,cv2.MORPH_OPEN,np.ones((10,10),np.uint8),iterations=1)
 
-    res_field = cv2.bitwise_and(img,img,mask=mask_field_after_filter)
-    
-    if (use_white_select):
-        # detect white object
+        # mask_dilate = cv2.dilate(mask_erode,np.ones((5,5),dtype=np.uint8))
+        ret_th,th1 = cv2.threshold(mask_open,127,255,cv2.THRESH_BINARY)
+        ret_th_inv,th_inv = cv2.threshold(th1,127,255,cv2.THRESH_BINARY_INV)
+        edge = cv2.Canny(th1,100,200) 
 
-        mask_ball,res_ball = detector.colorSpace(res_field,lower_ball,upper_ball)
-        mask_ball_after_filter = detector.lowPassfilterBall(mask_ball)
+        _c,contours,_hier = cv2.findContours(th_inv,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        img_contours = img.copy()
+        maxCnt = max(contours,key=lambda x: cv2.contourArea(x))
+        hull = cv2.convexHull(maxCnt)
+        cv2.drawContours(img_contours,[maxCnt],-1,(255,0,0),3)
+        cv2.drawContours(mask_zeros,[hull],-1,0,-1)
+        finalfield = cv2.bitwise_and(img,img,mask=mask_zeros)
 
-        _,contours,hierr = cv2.findContours(mask_ball_after_filter,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-        for c in contours:
-            x,y,w,h = cv2.boundingRect(c)
-            if ( (0.9<= float(w)/float(h) <= 1.2) and (w > 15 and h >15)):
-                cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-                (x_start,x_end,y_start,y_end) = crop_boundary(x,y,w,h)
+        mask_stack = np.hstack((mask_field,blur_mask,mask_close,mask_open))
+        # cv2.imshow("mask",mask_stack)
+        # cv2.imshow("Edge",edge)
+        # cv2.imshow("thresh",th1)
+        # cv2.imshow("thresh2",th_inv)
+        cv2.imshow("zeros",mask_zeros)
+        # cv2.imshow("contours",img_contours)
+        # cv2.imshow("FinalField",finalfield)
+
+    # ---------------------------  Field bouderies ------------------------
+    # else:  
+        mask_ball,_resball = detector.colorSpace(img,lower_ball,upper_ball)
+        mask_and = cv2.bitwise_and(mask_zeros,mask_ball)
+        # mask_ball_opening = cv2.morphologyEx(mask_and,cv2.MORPH_OPEN,np.ones((10,10)),iterations=1)
+        # mask_ball_closing = cv2.morphologyEx(mask_ball_opening,cv2.MORPH_CLOSE,np.ones((10,10)),iterations=3)
+        
+        _cball,contours_ball,_hierball = cv2.findContours(mask_and,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        ball_contour = img.copy()
+        
+        for cnt in contours_ball:
+            x,y,w,h = cv2.boundingRect(cnt)
+            # area_bounding_box = w*h
+            if 0.8 <= float(float(w)/float(h)) <= 1.2 and w*h > 100:
+                cv2.rectangle(ball_contour,(x,y),(x+w,y+h),(0,0,255),3)
+                (x_start,x_end,y_start,y_end) = crop_boundary(img,x,y,w,h)
                 img_roi = img[y_start:y_end,x_start:x_end]
-                footballs_roi = hc.detectMultiScale(img_roi,1.3,10)
 
-                if len(footballs_roi) >= 1:
-                    positionX = x+w/2
-                    positionY = y+h/2
-                    cv2.circle(img,(positionX,positionY),w/2,(255,0,0),2)
+                footballs = hc.detectMultiScale(img_roi,1.1,3)
+                if len(footballs) > 0:
+                    centroid_x=x+w/2
+                    centroid_y=y+h/2
+                    cv2.circle(ball_contour,(centroid_x,centroid_y),w/2,(255,0,0),2)
+            # peri = cv2.arcLength(cnt,True)
+            # approx = cv2.approxPolyDP(cnt,0.03*peri,True)
             
-            # circle_contour = detector.detectCircular(c)
-            # if(len(circle_contour)>0):
-            #     M = cv2.moments(circle_contour)
-            #     cX = int(M["m10"]/M["m00"])
-            #     cY = int(M["m01"]/M["m00"])
-            #     # cv2.drawContours(img,[circle_contour],-1,(255,0,0),2)
-                
-            #     # ROI
-            #     x,y,w,h = cv2.boundingRect(c)
-            #     if ( (0.9<= float(w)/float(h) <= 1.2) and (w > 15 and h >15)):
-                    
-            #         cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-            #         (x_start,x_end,y_start,y_end) = crop_boundary(x,y,w,h)
+            # cv2.drawContours(ball_contour,[cnt],-1,(0,0,255),2)
+        
+        mask_stack_ball = np.hstack((mask_ball,mask_and))
+        cv2.imshow("ball",mask_stack_ball)
+        cv2.imshow("ball_contours",ball_contour)
+        cv2.imshow("ROI",img_roi)
 
-            #         img_roi = img[y_start:y_end,x_start:x_end]
-            #         footballs_roi = hc.detectMultiScale(img_roi,1.3,10)
 
-            #         if len(footballs_roi) >= 1:
-            #             positionX = x+w/2
-            #             positionY = y+h/2
-            #             cv2.circle(img,(positionX,positionY),w/2,(255,0,0),2)
-
-                # cv2.rectangle(img,(cX-100,cY-100),(cX+100,cY+100),(255,0,255),5)
-                # cv2.circle(img,(cX,cY),10,(255,0,255),-1)
-        cv2.imshow("field boudery",res_field)
-        cv2.imshow("mask ball",mask_ball_after_filter)
-        cv2.imshow("img roi",img_roi)
+        cv2.imshow("img",img)
+        
+        k = cv2.waitKey(10)
+        if(k == ord('q')):
+            break
+        elif(k == ord('p')):
+            is_pause = (is_pause+1)%2
+            print 'pause'
     else:
-        footballs = hc.detectMultiScale(res_field,1.3,10)
-        for (x,y,w,h) in footballs:
-            cv2.circle(img,(x+w/2,y+h/2),w/2,(255,0,0),2)
-
-    cv2.imshow("img",img)
-
-    k = cv2.waitKey(10)
-    if(k == ord('q')):
-        break
-    elif(k == ord('p')):
-        is_pause = (is_pause+1)%2
-        print 'pause'
-
+        cap.set(cv2.CAP_PROP_POS_MSEC,0)
 cap.release()
 cv2.destroyAllWindows()

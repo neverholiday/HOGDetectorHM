@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import argparse
-
+from configobj import ConfigObj
 
 class ColorCalibrator(object):
     def __init__(self,camera_device):
@@ -20,6 +20,110 @@ class ColorCalibrator(object):
         mask = cv2.inRange(image_hsv,lower_bound,upper_bound)
         res = cv2.bitwise_and(image,image,mask=mask)
         return (mask,res)
+    
+    def createConfig(self,path,list_hsv):
+        config = ConfigObj(indent_type='\t')
+        config['ColorDefinitions'] = {}
+        config['ColorDefinitions']['OrangeColorParameter'] = {'ID':'1',
+                                                                'Name':'orange',
+                                                                'RenderColor_RGB':'(255, 128, 0)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+        
+        config['ColorDefinitions']['FieldGreenColorParameter'] = {'ID':'2',
+                                                                    'Name':'green',
+                                                                    'RenderColor_RGB':'(0, 128, 0)',
+                                                                    'MinArea_pixels':'4',
+                                                                    
+                                                                    'H_Max':str(list_hsv[3]),
+                                                                    'H_Min':str(list_hsv[0]),
+                                                                    'S_Max':str(list_hsv[4]),
+                                                                    'S_Min':str(list_hsv[1]),
+                                                                    'V_Max':str(list_hsv[5]),
+                                                                    'V_Min':str(list_hsv[2])}
+
+        config['ColorDefinitions']['BlueColorParameter'] = {'ID':'3',
+                                                                'Name':'blue',
+                                                                'RenderColor_RGB':'(0, 0, 255)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+
+        config['ColorDefinitions']['YellowColorParameter'] = {'ID':'4',
+                                                                'Name':'yellow',
+                                                                'RenderColor_RGB':'(255, 255, 0)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+
+        config['ColorDefinitions']['WhiteColorParameter'] = {'ID':'5',
+                                                                'Name':'white',
+                                                                'RenderColor_RGB':'(255, 255, 255)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+
+        config['ColorDefinitions']['BlackColorParameter'] = {'ID':'6',
+                                                                'Name':'black',
+                                                                'RenderColor_RGB':'(100, 100, 100)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+
+        config['ColorDefinitions']['MagentaColorParameter'] = {'ID':'7',
+                                                                'Name':'magenta',
+                                                                'RenderColor_RGB':'(255, 0, 128)',
+                                                                'MinArea_pixels':'4',
+                                                                
+                                                                'H_Max':'0',
+                                                                'H_Min':'0',
+                                                                'S_Max':'0',
+                                                                'S_Min':'0',
+                                                                'V_Max':'0',
+                                                                'V_Min':'0'}
+                                                                
+        config['ColorDefinitions']['CyanColorParameter'] = {
+                                                            'ID':'8',
+                                                            'Name':'cyan',
+                                                            'RenderColor_RGB':'(0, 255, 255)',
+                                                            'MinArea_pixels':'4',
+                                                            
+                                                            'H_Max':'0',
+                                                            'H_Min':'0',
+                                                            'S_Max':'0',
+                                                            'S_Min':'0',
+                                                            'V_Max':'0',
+                                                            'V_Min':'0'
+                                                            }
+        config['CameraParameters'] = {}
+        config.filename = path
+        config.write()
     
 class Trackbar(object):
     """
@@ -52,10 +156,13 @@ class Trackbar(object):
 
         return (lower,upper)
 
+    
+
 def main():
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--device",help = "Select camera device",required = True)
+    ap.add_argument("--config",help = "Directory and Name of config file")
     args = vars(ap.parse_args())
 
     is_pause = 1
@@ -67,22 +174,33 @@ def main():
     color_tool = ColorCalibrator(args["device"])
     camera = color_tool.selectDevice()
     cap = cv2.VideoCapture(camera)
+    print cap.get(cv2.CAP_PROP_AUTOFOCUS)
+    print cap.get(cv2.CAP_PROP_BRIGHTNESS)
+    # print cap.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+    # print cap.get(cv2.CAP_PROP_WHITE_BALANCE_RED_V)
+    
     while True:   
         if(is_pause): 
             ret,img = cap.read()
-        (lower,upper) = trackbar.getvalueHSV()
-        (mask,res) = color_tool.colorSpace(img,lower,upper)    
-        stack_image = np.hstack((img,res))
-        cv2.imshow("img",stack_image)
-        k=cv2.waitKey(5)
-        if(k == ord('q')):
-            break
-        elif(k==ord('p')):
-            print 'pause'
-            is_pause = (is_pause + 1)%2
-        elif(k==ord('r')):
+        if ret:
+            (lower,upper) = trackbar.getvalueHSV()
+            (mask,res) = color_tool.colorSpace(img,lower,upper)    
+            stack_image = np.hstack((img,res))
+            cv2.imshow("img",stack_image)
+            k=cv2.waitKey(5)
+            if(k == ord('q')):
+                break
+            elif(k==ord('p')):
+                print 'pause'
+                is_pause = (is_pause + 1)%2
+            elif(k==ord('r')):
+                cap.set(cv2.CAP_PROP_POS_MSEC,0)
+            elif(k==ord('s')):
+                hsv_list = np.hstack((lower,upper))
+                print 'Save as ..' + args["config"]
+                color_tool.createConfig(args["config"],hsv_list)
+        else:
             cap.set(cv2.CAP_PROP_POS_MSEC,0)
-
 
     cv2.destroyAllWindows
 
