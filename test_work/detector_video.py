@@ -19,13 +19,18 @@ is_pause = 1
 # use_white_select = int(args["mode"])
 
 detector = Detector()
-lower_field = np.array([41,59,53],dtype=np.uint8)
-upper_field = np.array([61,242,255],dtype=np.uint8)
-lower_ball = np.array([0,0,132],dtype=np.uint8)
-upper_ball = np.array([179,42,255],dtype=np.uint8)
+# lower_field = np.array([41,59,53],dtype=np.uint8)
+# upper_field = np.array([61,242,255],dtype=np.uint8)
+# lower_ball = np.array([0,0,132],dtype=np.uint8)
+# upper_ball = np.array([179,42,255],dtype=np.uint8)
+lower_field = np.array([36,27,19],dtype=np.uint8)
+upper_field = np.array([67,241,237],dtype=np.uint8)
+lower_ball = np.array([0,0,140],dtype=np.uint8)
+upper_ball = np.array([179,41,255],dtype=np.uint8)
 
-# cap = cv2.VideoCapture(1)
-cap = cv2.VideoCapture('../test_subject/video/test_landmark2.avi')
+
+cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture('../test_subject/video/test_landmark2.avi')
 hc = cv2.CascadeClassifier("../test_subject/model/data_haar_2018143_13.xml")
 img_roi = np.zeros((50,50),dtype=np.uint8)
 
@@ -55,12 +60,14 @@ while True:
         edge = cv2.Canny(th1,100,200) 
 
         _c,contours,_hier = cv2.findContours(th_inv,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        # print contours
         img_contours = img.copy()
-        maxCnt = max(contours,key=lambda x: cv2.contourArea(x))
-        hull = cv2.convexHull(maxCnt)
-        cv2.drawContours(img_contours,[maxCnt],-1,(255,0,0),3)
-        cv2.drawContours(mask_zeros,[hull],-1,0,-1)
-        finalfield = cv2.bitwise_and(img,img,mask=mask_zeros)
+        if(len(contours)):
+            maxCnt = max(contours,key=lambda x: cv2.contourArea(x))
+            hull = cv2.convexHull(maxCnt)
+            cv2.drawContours(img_contours,[maxCnt],-1,(255,0,0),3)
+            cv2.drawContours(mask_zeros,[hull],-1,0,-1)
+            finalfield = cv2.bitwise_and(img,img,mask=mask_zeros)
 
         mask_stack = np.hstack((mask_field,blur_mask,mask_close,mask_open))
         # cv2.imshow("mask",mask_stack)
