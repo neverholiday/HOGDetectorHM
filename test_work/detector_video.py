@@ -10,11 +10,6 @@ def crop_boundary(img,x,y,w,h):
     y_end = min(y + h + 30,img.shape[0])
     return (x_start,x_end,y_start,y_end)
 
-
-# ap = argparse.ArgumentParser()
-# ap.add_argument("-i","--mode",help="select mode field only (0) or ball only (1)",required=True)
-# args = vars(ap.parse_args())
-
 is_pause = 1
 # use_white_select = int(args["mode"])
 
@@ -43,14 +38,13 @@ while True:
     if ret:
 
         # ---------------------------  Field bouderies ------------------------
-        # if int(args["mode"]) == 0:
-        
+    
         mask_zeros = 255*np.ones((img.shape[0],img.shape[1]),dtype=np.uint8)
         img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
         mask_field,_res = detector.colorSpace(img,lower_field,upper_field)
         blur_mask = cv2.GaussianBlur(mask_field,(5,5),0)
-        # mask_erode = cv2.erode(mask_field,np.ones((5,5),dtype=np.uint8))
+
         mask_close = cv2.morphologyEx(blur_mask,cv2.MORPH_CLOSE,np.ones((10,10),np.uint8),iterations=1)
         mask_open = cv2.morphologyEx(mask_close,cv2.MORPH_OPEN,np.ones((10,10),np.uint8),iterations=1)
 
@@ -70,20 +64,12 @@ while True:
             finalfield = cv2.bitwise_and(img,img,mask=mask_zeros)
 
         mask_stack = np.hstack((mask_field,blur_mask,mask_close,mask_open))
-        # cv2.imshow("mask",mask_stack)
-        # cv2.imshow("Edge",edge)
-        # cv2.imshow("thresh",th1)
-        # cv2.imshow("thresh2",th_inv)
+
         cv2.imshow("zeros",mask_zeros)
-        # cv2.imshow("contours",img_contours)
-        # cv2.imshow("FinalField",finalfield)
 
     # ---------------------------  Field bouderies ------------------------
-    # else:  
         mask_ball,_resball = detector.colorSpace(img,lower_ball,upper_ball)
         mask_and = cv2.bitwise_and(mask_zeros,mask_ball)
-        # mask_ball_opening = cv2.morphologyEx(mask_and,cv2.MORPH_OPEN,np.ones((10,10)),iterations=1)
-        # mask_ball_closing = cv2.morphologyEx(mask_ball_opening,cv2.MORPH_CLOSE,np.ones((10,10)),iterations=3)
         
         _cball,contours_ball,_hierball = cv2.findContours(mask_and,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         ball_contour = img.copy()
