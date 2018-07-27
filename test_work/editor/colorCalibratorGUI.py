@@ -4,8 +4,8 @@ import numpy as np
 
 from PyQt4 import QtCore, QtGui
 
-from color_gui import Ui_ColorCalibrator
-from color_calibrtor import ColorCalibrator
+from colorGUI import Ui_ColorCalibrator
+from colorCalibrator import ColorCalibrator
 
 
 try:
