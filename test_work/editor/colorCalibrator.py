@@ -1,122 +1,86 @@
+#!/usr/bin/env python
+
 import cv2
 import numpy as np
 import argparse
 from configobj import ConfigObj
+import configparser
 
-class ColorCalibrator(object):
-	def __init__(self):
-		pass
+class ColorCalibrator( object ):
 
-	def colorSpace(self,image,lower_bound,upper_bound):
-		image_hsv = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
-		mask = cv2.inRange(image_hsv,lower_bound,upper_bound)
-		res = cv2.bitwise_and(image,image,mask=mask)
-		return (mask,res)
-	
-	def createConfig(self,path,list_hsv):
-		config = ConfigObj(indent_type='\t')
-		config['ColorDefinitions'] = {}
-		config['ColorDefinitions']['OrangeColorParameter'] = {'ID':'1',
-																'Name':'orange',
-																'RenderColor_RGB':'(255, 128, 0)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
+	'''
+		Color calibrator module
+		args : 
+			pathConfig -> Path of configuration file
+	'''
+
+	def __init__( self, pathConfig = 'config.ini' ):
 		
-		config['ColorDefinitions']['FieldGreenColorParameter'] = {'ID':'2',
-																	'Name':'green',
-																	'RenderColor_RGB':'(0, 128, 0)',
-																	'MinArea_pixels':'4',
-																	
-																	'H_Max':str(list_hsv[3]),
-																	'H_Min':str(list_hsv[0]),
-																	'S_Max':str(list_hsv[4]),
-																	'S_Min':str(list_hsv[1]),
-																	'V_Max':str(list_hsv[5]),
-																	'V_Min':str(list_hsv[2])}
+		## Set path of config 
+		self.__pathConfig = pathConfig
 
-		config['ColorDefinitions']['BlueColorParameter'] = {'ID':'3',
-																'Name':'blue',
-																'RenderColor_RGB':'(0, 0, 255)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
+		## Instance of config parser
+		self.__config = configparser.ConfigParser()
 
-		config['ColorDefinitions']['YellowColorParameter'] = {'ID':'4',
-																'Name':'yellow',
-																'RenderColor_RGB':'(255, 255, 0)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
+	def colorSpace( self, image, lowerBound, upperBound ):
+		'''
+			colorSpace function
+			args:
+				image -> Image from opencv format ( 0-255 )
+				lowerBound -> Lower boundary of HSV format
+				upperBound -> Upper boundary of HSV format
+			return:
+				mask -> Mask of image, binary image
+				res -> Image from image ( bitwise_and ) mask
+		'''
 
-		config['ColorDefinitions']['WhiteColorParameter'] = {'ID':'5',
-																'Name':'white',
-																'RenderColor_RGB':'(255, 255, 255)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
+		## Convert color
+		imageHSV = cv2.cvtColor( image, cv2.COLOR_BGR2HSV )
 
-		config['ColorDefinitions']['BlackColorParameter'] = {'ID':'6',
-																'Name':'black',
-																'RenderColor_RGB':'(100, 100, 100)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
+		## Create mask from upper and lower boundary 
+		mask = cv2.inRange( imageHSV, lowerBound, upperBound )
 
-		config['ColorDefinitions']['MagentaColorParameter'] = {'ID':'7',
-																'Name':'magenta',
-																'RenderColor_RGB':'(255, 0, 128)',
-																'MinArea_pixels':'4',
-																
-																'H_Max':'0',
-																'H_Min':'0',
-																'S_Max':'0',
-																'S_Min':'0',
-																'V_Max':'0',
-																'V_Min':'0'}
-																
-		config['ColorDefinitions']['CyanColorParameter'] = {
-															'ID':'8',
-															'Name':'cyan',
-															'RenderColor_RGB':'(0, 255, 255)',
-															'MinArea_pixels':'4',
-															
-															'H_Max':'0',
-															'H_Min':'0',
-															'S_Max':'0',
-															'S_Min':'0',
-															'V_Max':'0',
-															'V_Min':'0'
-															}
-		config['CameraParameters'] = {}
-		config.filename = path
-		config.write()
+		## Create res
+		res = cv2.bitwise_and( image, image, mask=mask )
+
+		return mask, res
 	
+	def generateConfig( self, HSVDict ):
+		'''
+			createConfig funtion
+			This function generate config for using cut region of color HSV format.
+			NOTE : This config save only green and orage first
+			args:
+				HSVDict -> Dict HSV color, format : { "Color" : [  H_low, S_low, V_low, H_high, S_high, V_high ] }
+		'''
+		self.__config.add_section( "Green" )
+		self.__config.set( "Green", "H_Low", str( HSVDict[ "Green" ][ 0 ] ) )
+		self.__config.set( "Green", "S_Low", str( HSVDict[ "Green" ][ 1 ] ) )
+		self.__config.set( "Green", "V_Low", str( HSVDict[ "Green" ][ 2 ] ) )
+		self.__config.set( "Green", "H_Upper", str( HSVDict[ "Green" ][ 3 ] ) )
+		self.__config.set( "Green", "S_Upper", str( HSVDict[ "Green" ][ 4 ] ) )
+		self.__config.set( "Green", "V_Upper", str( HSVDict[ "Green" ][ 5 ] ) )
+
+		self.__config.add_section( "Orange" )
+		self.__config.set( "Orange", "H_Low", str( HSVDict[ "Orange" ][ 0 ] ) )
+		self.__config.set( "Orange", "S_Low", str( HSVDict[ "Orange" ][ 1 ] ) )
+		self.__config.set( "Orange", "V_Low", str( HSVDict[ "Orange" ][ 2 ] ) )
+		self.__config.set( "Orange", "H_Upper", str( HSVDict[ "Orange" ][ 3 ] ) )
+		self.__config.set( "Orange", "S_Upper", str( HSVDict[ "Orange" ][ 4 ] ) )
+		self.__config.set( "Orange", "V_Upper", str( HSVDict[ "Orange" ][ 5 ] ) )
+
+		## Save config
+		with open( self.__pathConfig, 'wb' ) as fileConfig:
+			self.__config.write( fileConfig )
+
+	def setPathConfig( self, pathConfig):
+		'''
+			Set path of config
+			args :
+				pathConfig -> Path to save file config
+		'''
+		self.__pathConfig = pathConfig
+		
 class Trackbar(object):
 	"""
 		Replace GUI Later
@@ -153,7 +117,6 @@ class Trackbar(object):
 def main():
 
 	ap = argparse.ArgumentParser()
-	ap.add_argument("--device",help = "Select camera device",required = True)
 	ap.add_argument("--config",help = "Directory and Name of config file")
 	args = vars(ap.parse_args())
 
@@ -165,7 +128,7 @@ def main():
 
 	color_tool = ColorCalibrator()
 	# TODO: Fix video capture duay na ja
-	cap = cv2.VideoCapture(0)
+	cap = cv2.VideoCapture( 0 )
 	# print cap.get(cv2.CAP_PROP_AUTOFOCUS)
 	# print cap.get(cv2.CAP_PROP_BRIGHTNESS)
 	cap.set(cv2.CAP_PROP_FRAME_WIDTH,640)
